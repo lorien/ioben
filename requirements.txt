@@ -1,0 +1,8 @@
+git+https://github.com/lorien/grab
+tornado
+lxml
+pycurl
+argparse
+gevent
+urllib3
+geventhttpclient

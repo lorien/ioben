@@ -5,19 +5,14 @@
 * gevent & urllib2 
 * threading & urllib
 * threading & urllib2
-todo:
 * gevent & urllib3
-* gevent & httplib
 * gevent & geventhttpclient
-* multicurl
+* crawler (multicurl)
+todo:
 * tornado & its http client
 * twisted
 
 deps:
-* lxml
-* pycurl
-* argparse
-* gevent
 """
 import sys
 import time
@@ -27,10 +22,10 @@ from random import randint
 from collections import deque
 
 URLS = (
-    #('http://localhost:9000/?delay=0.5', 100, [100, 1000]),
-    ('http://localhost:9000/?delay=0', 2000, [50, 100, 500, 1000]),
+    ('http://localhost:9000/?delay=0', 2000, [10, 50, 100, 500, 1000]),
+    #('http://localhost:9000/?delay=0.2', 500, [20, 50, 100, 500]),
 )
-DATA_FILE = open('static/28k.fast.html').read()
+DATA_FILE = open('static/28k.html').read()
 DATA_START = DATA_FILE[:20]
 COUNTER = deque()
 
@@ -174,9 +169,11 @@ def test_gevent_urllib3(task_list, thread_count):
     gevent.monkey.patch_all()
     logging.getLogger('urllib3.connectionpool').setLevel(logging.ERROR)
 
-    conn = urllib3.connection_from_url(task_list[0][1], maxsize=thread_count)
+    initial_url = task_list[0][1]
 
     def crawler():
+        conn = urllib3.connection_from_url(initial_url)
+
         while True:
             try:
                 num, url = task_list.pop()
@@ -191,6 +188,50 @@ def test_gevent_urllib3(task_list, thread_count):
         glet = gevent.spawn(crawler)
         glets.append(glet)
     gevent.joinall(glets)
+
+
+def test_gevent_geventhttpclient(task_list, thread_count):
+    if 'threading' in sys.modules:
+        del sys.modules['threading']
+    import gevent
+    from geventhttpclient import HTTPClient
+    from geventhttpclient.url import URL
+
+    initial_url = task_list[0][1]
+
+    def crawler():
+        http = HTTPClient.from_url(URL(initial_url)) 
+
+        while True:
+            try:
+                num, url = task_list.pop()
+            except IndexError:
+                return
+            else:
+                req = URL(url)
+                res = http.get(req.request_uri)
+                process_response(res.read())
+
+    glets = []
+    for x in xrange(thread_count):
+        glet = gevent.spawn(crawler)
+        glets.append(glet)
+    gevent.joinall(glets)
+
+
+def test_crawler(task_list, thread_count):
+    from crawler.base import Crawler
+
+    class TestCrawler(Crawler):
+        def task_generator(self):
+            for num, url in task_list:
+                yield {'url': url, 'callback': self.task_page}
+
+        def task_page(self, handler, task, body):
+            process_response(body)
+
+    bot = TestCrawler(pool_size=thread_count)
+    bot.run()
 
 
 def main():
