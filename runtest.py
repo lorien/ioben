@@ -20,10 +20,11 @@ import logging
 import argparse
 from random import randint
 from collections import deque
+import memory_profiler
 
 URLS = (
     ('http://localhost:9000/?delay=0', 2000, [10, 50, 100, 500, 1000]),
-    #('http://localhost:9000/?delay=0.2', 500, [20, 50, 100, 500]),
+    #('http://localhost:9000/?delay=0.1', 500, [20, 50, 100, 500]),
 )
 DATA_FILE = open('static/28k.html').read()
 DATA_START = DATA_FILE[:20]
@@ -132,6 +133,7 @@ def test_threading_urllib(task_list, thread_count):
         thread.start()
     for thread in threads:
         thread.join()
+
 
 
 def test_threading_urllib2(task_list, thread_count):

@@ -6,3 +6,5 @@ argparse
 gevent
 urllib3
 geventhttpclient
+memory_profiler
+psutils
